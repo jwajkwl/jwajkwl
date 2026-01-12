@@ -2,8 +2,8 @@ name: Generate Pacman Animation
 
 on:
   schedule:
-    - cron: "0 */12 * * *"  # Cada 12 horas
-  workflow_dispatch:  # Ejecución manual
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
   push:
     branches: [main]
 
@@ -16,22 +16,35 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          
+        
       - name: Generate Pacman SVG
         uses: abozanona/pacman-contribution-graph@main
         with:
           github_user_name: ${{ github.repository_owner }}
-          output_directory: output/
+          output_directory: "./"
+          
+      - name: List generated files (para depuración)
+        run: ls -la pacman*.svg || echo "No se generaron archivos SVG"
+        
+      - name: Create output directory if needed
+        run: mkdir -p output
+        
+      - name: Move SVG files to output directory
+        run: |
+          mv pacman-contribution-graph.svg output/ 2>/dev/null || true
+          mv pacman-contribution-graph-dark.svg output/ 2>/dev/null || true
+          
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
           
       - name: Commit and push changes
         run: |
+          git add output/ || true
+          git add pacman*.svg || true
           if [ -n "$(git status --porcelain)" ]; then
-            git config --local user.email "action@github.com"
-            git config --local user.name "GitHub Action"
-            git add output/
-            git commit -m "Update Pacman contribution graph [skip ci]"
+            git commit -m "Update Pacman contribution graph"
             git push
           else
             echo "No changes to commit"
